@@ -1,0 +1,14 @@
+{
+  "default": "Personal",
+  "annotation-field": "annotations",
+  "workspaces": {
+    "Personal": {
+      "HelloWorld": {
+        "annotations": {
+          "my-app.io/group": "HelloWorld"
+        }
+      },
+      "NoWorld": {}
+    }
+  }
+}
