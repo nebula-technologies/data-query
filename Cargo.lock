@@ -3,16 +3,6 @@
 version = 3
 
 [[package]]
-name = "DataFilter"
-version = "0.1.0"
-dependencies = [
- "railsgun",
- "regex",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "aho-corasick"
 version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -30,6 +20,30 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "data-query"
+version = "0.1.0"
+dependencies = [
+ "data-query-lexer",
+ "data-query-proc",
+ "railsgun",
+ "regex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "data-query-lexer"
+version = "0.1.0"
+
+[[package]]
+name = "data-query-proc"
+version = "0.1.0"
+dependencies = [
+ "data-query-lexer",
+ "quote",
 ]
 
 [[package]]

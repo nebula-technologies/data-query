@@ -1,12 +1,17 @@
 [package]
-name = "DataFilter"
+name = "data-query"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+members = ["packages/Data Query Proc", "packages/Data Query Lexer"]
 
 [dependencies]
 railsgun = "1.0.3"
 regex = "1.5.6"
 serde = "1.0.137"
 serde_json = "1.0.81"
+data-query-proc = {path="./packages/Data Query Proc"}
+data-query-lexer = {path="./packages/Data Query Lexer"}
