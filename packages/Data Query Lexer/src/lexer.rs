@@ -1,5 +1,6 @@
 use crate::lexer_constants::*;
 use std::num::ParseIntError;
+use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum LexerError {
@@ -46,7 +47,38 @@ pub enum LexOperator {
     Generic(GenericObjectIndex),
 }
 
-pub fn compile(s: &str) -> LexResult<Vec<LexOperator>> {
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub struct LexicalOperations(Vec<LexOperator>);
+
+impl From<Vec<LexOperator>> for LexicalOperations {
+    fn from(v: Vec<LexOperator>) -> Self {
+        Self(v)
+    }
+}
+
+impl Deref for LexicalOperations {
+    type Target = Vec<LexOperator>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for LexicalOperations {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl TryInto<LexicalOperations> for &str {
+    type Error = LexerError;
+
+    fn try_into(self) -> Result<LexicalOperations, LexerError> {
+        compile(self)
+    }
+}
+
+pub fn compile(s: &str) -> LexResult<LexicalOperations> {
     let mut lexer_vec = s.chars().into_iter().collect::<Vec<char>>();
     lexer_vec.reverse();
     generic_compiler(
@@ -55,6 +87,7 @@ pub fn compile(s: &str) -> LexResult<Vec<LexOperator>> {
         Default::default(),
         Default::default(),
     )
+    .map(LexicalOperations::from)
 }
 
 pub fn generic_compiler(
@@ -159,6 +192,7 @@ fn generic_object_index(
                 collect = Default::default();
                 generic_object_index(lexer_vec, collect, slicer, char_pointer)
             }
+            LEX_ROUGE_WIDESPACE => generic_object_index(lexer_vec, collect, slicer, char_pointer),
             _ => {
                 collect.push(c);
                 generic_object_index(lexer_vec, collect, slicer, char_pointer)
@@ -182,6 +216,7 @@ mod test {
         compile, generic_compiler, generic_object_index, GenericObjectIndex, LexOperator,
         LexResult, Slicer,
     };
+    use crate::LexicalOperations;
 
     fn lex_vec(s: &str) -> Vec<char> {
         s.chars().into_iter().collect::<Vec<char>>()
@@ -232,7 +267,7 @@ mod test {
     #[test]
     pub fn test_compiler() {
         let compiled_lex = compile(".metadata[1,2,4-6,hello]");
-        let true_result: LexResult<Vec<LexOperator>> = Ok(vec![
+        let true_result: LexResult<LexicalOperations> = Ok(vec![
             Identifier("metadata".to_string()),
             Generic(Slice(vec![
                 Index(1),
@@ -241,7 +276,8 @@ mod test {
                 SliceTo(6),
                 Ident("hello".to_string()),
             ])),
-        ]);
+        ]
+        .into());
         println!("{:?}", compiled_lex);
         assert_eq!(true_result, compiled_lex);
     }
