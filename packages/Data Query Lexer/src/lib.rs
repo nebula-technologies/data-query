@@ -10,8 +10,7 @@ impl MacroFormat for lexer::Slicer {
     fn macro_fmt(&self) -> String {
         match self {
             Slicer::Index(i) => format!("::data_query_lexer::Slicer::Index({})", i),
-            Slicer::SliceFrom(i) => format!("::data_query_lexer::Slicer::SliceFrom({})", i),
-            Slicer::SliceTo(i) => format!("::data_query_lexer::Slicer::SliceTo({})", i),
+            Slicer::Slice(f, t) => format!("::data_query_lexer::Slicer::Slice({},{})", f, t),
             Slicer::Ident(i) => {
                 format!("::data_query_lexer::Slicer::Ident(\"{}\".into())", i)
             }

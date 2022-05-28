@@ -16,6 +16,7 @@ pub enum LexerError {
         char_pointer: usize,
         lex: String,
     },
+    NoResultAvailable
 }
 
 impl From<ParseIntError> for LexerError {
@@ -30,13 +31,13 @@ pub type LexResult<T> = Result<T, LexerError>;
 pub enum GenericObjectIndex {
     Wildcard,
     Slice(Vec<Slicer>),
+    None,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Slicer {
     Index(usize),
-    SliceFrom(usize),
-    SliceTo(usize),
+    Slice(usize, usize),
     Ident(String),
 }
 
@@ -111,9 +112,13 @@ pub fn generic_compiler(
                     operator.push(LexOperator::Identifier(collect));
                     collect = Default::default();
                 }
-                let v =
-                    generic_object_index(lexer_vec, Default::default(), Vec::new(), char_pointer)?;
-                operator.push(LexOperator::Generic(v));
+                let mut result = Default::default();
+                    generic_object_index(lexer_vec, &mut result, char_pointer)?;
+                if let Some(r) = result {
+                    operator.push(LexOperator::Generic(r));
+                } else {
+                    return Err(LexerError::NoResultAvailable);
+                }
             }
             _ => collect.push(c),
         }
@@ -125,77 +130,23 @@ pub fn generic_compiler(
 
 fn generic_object_index(
     lexer_vec: &mut Vec<char>,
-    mut collect: String,
-    mut slicer: Vec<Slicer>,
+    mut result: &mut Option<GenericObjectIndex>,
     mut char_pointer: usize,
-) -> LexResult<GenericObjectIndex> {
+) -> LexResult<()> {
     let char = lexer_vec.pop();
     if let Some(c) = char {
         char_pointer += 1;
         match c {
             LEX_GENERIC_END => {
-                if collect.is_empty() && slicer.is_empty() {
-                    Ok(GenericObjectIndex::Wildcard)
-                } else if !collect.is_empty() {
-                    if let Some(Slicer::SliceFrom(u)) = slicer.last() {
-                        let slice = collect.parse::<usize>().map_err(LexerError::from)?;
-                        slicer.push(Slicer::SliceTo(slice))
-                    } else if let Ok(u) = collect.parse::<usize>() {
-                        slicer.push(Slicer::Index(u));
-                    } else {
-                        slicer.push(Slicer::Ident(collect.clone()));
-                    }
-                    Ok(GenericObjectIndex::Slice(slicer))
-                } else {
-                    Ok(GenericObjectIndex::Slice(slicer))
-                }
+                result.replace(GenericObjectIndex::Wildcard);
             }
-            LEX_GENERIC_SEPARATOR => {
-                if collect.is_empty() && slicer.is_empty() {
-                    Err(LexerError::UnexpectedCharacter {
-                        expected: "Integer/String".to_string(),
-                        found: LEX_GENERIC_SEPARATOR.to_string(),
-                        char_pointer,
-                        lex: format!("{:?}", lexer_vec),
-                    })
-                } else {
-                    if let Some(Slicer::SliceFrom(u)) = slicer.last() {
-                        let slice = collect.parse::<usize>().map_err(LexerError::from)?;
-                        slicer.push(Slicer::SliceTo(slice))
-                    } else if let Ok(u) = collect.parse::<usize>() {
-                        slicer.push(Slicer::Index(u));
-                    } else {
-                        slicer.push(Slicer::Ident(collect.clone()));
-                    }
-                    collect = Default::default();
-                    generic_object_index(lexer_vec, collect, slicer, char_pointer)
-                }
-            }
-            LEX_GENERIC_SLICE => {
-                if collect.is_empty() && slicer.is_empty() {
-                    return Err(LexerError::UnexpectedCharacter {
-                        expected: "Integer/String".to_string(),
-                        found: LEX_GENERIC_SEPARATOR.to_string(),
-                        char_pointer,
-                        lex: format!("{:?}", lexer_vec),
-                    });
-                } else if let Ok(u) = collect.parse::<usize>() {
-                    slicer.push(Slicer::SliceFrom(u));
-                } else {
-                    return Err(LexerError::UnexpectedCharacter {
-                        expected: "Integer".to_string(),
-                        found: "String".to_string(),
-                        char_pointer,
-                        lex: format!("{:?}", lexer_vec),
-                    });
-                }
-                collect = Default::default();
-                generic_object_index(lexer_vec, collect, slicer, char_pointer)
-            }
-            LEX_ROUGE_WIDESPACE => generic_object_index(lexer_vec, collect, slicer, char_pointer),
+
+            LEX_ROUGE_WIDESPACE => { generic_object_index(lexer_vec, result, char_pointer)?; },
             _ => {
-                collect.push(c);
-                generic_object_index(lexer_vec, collect, slicer, char_pointer)
+                lexer_vec.push(c);
+                let mut slicer = Vec::new();
+                generic_object_index_nonwildcard(lexer_vec, Default::default(), &mut slicer, char_pointer);
+                result.replace(GenericObjectIndex::Slice(slicer));
             }
         }
     } else {
@@ -205,13 +156,81 @@ fn generic_object_index(
             lex: format!("{:?}", lexer_vec),
         })
     }
+    Ok(())
+}
+
+fn generic_object_index_nonwildcard(    lexer_vec: &mut Vec<char>,
+                                        mut collect: String,
+                                        mut result: &mut Vec<Slicer>,
+                                        mut char_pointer: usize) -> LexResult<()> {
+    let char = lexer_vec.pop();
+    if let Some(c) = char {
+        char_pointer += 1;
+        match c
+        LEX_GENERIC_END => {
+            if collect.is_empty() {
+                *result = GenericObjectIndex::Wildcard;
+            } else if !collect.is_empty() {
+                if let GenericObjectIndex::Slice(slicer) = result {
+                    slicer.pop();
+                    let to = collect.parse::<usize>().map_err(LexerError::from)?;
+                    slicer.push(Slicer::Slice(*from, to));
+                } else if let Ok(u) = collect.parse::<usize>() {
+                    slicer.push(Slicer::Index(u));
+                } else {
+                    slicer.push(Slicer::Ident(collect.clone()));
+                }
+            }
+        }
+        LEX_GENERIC_SEPARATOR => {
+            if collect.is_empty() && slicer.is_empty() {
+                Err(LexerError::UnexpectedCharacter {
+                    expected: "Integer/String".to_string(),
+                    found: LEX_GENERIC_SEPARATOR.to_string(),
+                    char_pointer,
+                    lex: format!("{:?}", lexer_vec),
+                })
+            } else {
+                if let Some(Slicer::Slice(f, ref mut t)) = slicer.last() {
+                    let slice = collect.parse::<usize>().map_err(LexerError::from)?;
+                    *t = slice;
+                } else if let Ok(u) = collect.parse::<usize>() {
+                    slicer.push(Slicer::Index(u));
+                } else {
+                    slicer.push(Slicer::Ident(collect.clone()));
+                }
+                collect = Default::default();
+                generic_object_index(lexer_vec, collect, slicer, char_pointer)
+            }
+        }
+        LEX_GENERIC_SLICE => {
+            if collect.is_empty() && slicer.is_empty() {
+                return Err(LexerError::UnexpectedCharacter {
+                    expected: "Integer/String".to_string(),
+                    found: LEX_GENERIC_SEPARATOR.to_string(),
+                    char_pointer,
+                    lex: format!("{:?}", lexer_vec),
+                });
+            } else if let Ok(u) = collect.parse::<usize>() {
+                slicer.push(Slicer::Slice(u, 0));
+            } else {
+                return Err(LexerError::UnexpectedCharacter {
+                    expected: "Integer".to_string(),
+                    found: "String".to_string(),
+                    char_pointer,
+                    lex: format!("{:?}", lexer_vec),
+                });
+            }
+            collect = Default::default();
+            generic_object_index(lexer_vec, collect, slicer, char_pointer);
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
     use crate::lexer::GenericObjectIndex::*;
     use crate::lexer::LexOperator::*;
-    use crate::lexer::Slicer::*;
     use crate::lexer::{
         compile, generic_compiler, generic_object_index, GenericObjectIndex, LexOperator,
         LexResult, Slicer,
@@ -230,9 +249,8 @@ mod test {
         let true_generic_object = GenericObjectIndex::Slice(vec![
             Slicer::Index(1),
             Slicer::Index(2),
-            Slicer::SliceFrom(4),
-            Slicer::SliceTo(6),
-            Ident("hello".to_string()),
+            Slicer::Slice(4, 6),
+            Slicer::Ident("hello".to_string()),
         ]);
 
         println!("{:?}", slicer);
@@ -253,11 +271,10 @@ mod test {
         let true_result: LexResult<Vec<LexOperator>> = Ok(vec![
             Identifier("metadata".to_string()),
             Generic(Slice(vec![
-                Index(1),
-                Index(2),
-                SliceFrom(4),
-                SliceTo(6),
-                Ident("hello".to_string()),
+                Slicer::Index(1),
+                Slicer::Index(2),
+                Slicer::Slice(4, 6),
+                Slicer::Ident("hello".to_string()),
             ])),
         ]);
         println!("{:?}", compiled_lex);
@@ -270,11 +287,10 @@ mod test {
         let true_result: LexResult<LexicalOperations> = Ok(vec![
             Identifier("metadata".to_string()),
             Generic(Slice(vec![
-                Index(1),
-                Index(2),
-                SliceFrom(4),
-                SliceTo(6),
-                Ident("hello".to_string()),
+                Slicer::Index(1),
+                Slicer::Index(2),
+                Slicer::Slice(4, 6),
+                Slicer::Ident("hello".to_string()),
             ])),
         ]
         .into());
