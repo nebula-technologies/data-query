@@ -1,12 +1,16 @@
 [package]
 name = "data-query"
 version = "0.1.0"
+authors = ["Anders Blenstrup-Pedersen <abp-git@ryuu.technology>"]
 edition = "2021"
+description = "Query library that allows for Querying Serializable data using string queries".
+readme = "README.md"
+categories = [""]
+keywords = ["serde", "query"]
+license = "MIT"
+repository = "https://github.com/nebula-technologies/data-query"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[workspace]
-members = ["packages/Data Query Proc", "packages/Data Query Lexer"]
 
 [dependencies]
 railsgun = "1.0.3"
