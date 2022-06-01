@@ -296,7 +296,7 @@ fn match_slice_to_key(key: &str, query: &mut GenericObjectIndex) -> bool {
 #[cfg(test)]
 pub mod test {
     use crate::{query, ComType};
-    use data_query_lexical::LexOperator;
+    use data_query_lexical::{compile, LexOperator};
     use serde_derive::Serialize;
     use std::collections::LinkedList;
 
@@ -386,7 +386,7 @@ pub mod test {
     }
 
     #[test]
-    fn test_query() {
+    fn test_query_precompile() {
         let lex = precompile_lex!(.friends[1].name);
         println!("{:?}", lex);
         let data = User::default();
@@ -395,8 +395,26 @@ pub mod test {
     }
 
     #[test]
-    fn test_query_multiple_results() {
+    fn test_query_multiple_results_precompile() {
         let lex = precompile_lex!(.friends[1,2].name);
+        println!("{:?}", lex);
+        let data = User::default();
+        let query_res = query(data, lex);
+        println!("{:?}", query_res.unwrap());
+    }
+
+    #[test]
+    fn test_query() {
+        let lex = compile(".friends[1].name").unwrap();
+        println!("{:?}", lex);
+        let data = User::default();
+        let query_res = query(data, lex);
+        println!("{:?}", query_res.unwrap());
+    }
+
+    #[test]
+    fn test_query_multiple_results() {
+        let lex = compile(".friends[1,2].name").unwrap();
         println!("{:?}", lex);
         let data = User::default();
         let query_res = query(data, lex);
