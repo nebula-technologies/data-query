@@ -7,16 +7,14 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
-use crate::error::QueryError;
-use data_query_lexical::{GenericObjectIndex, LexOperator, LexerError, LexicalOperations, Slicer};
-use regex::bytes::Regex;
+mod error;
+
+pub use crate::error::QueryError;
+use data_query_lexical::{GenericObjectIndex, LexOperator, LexicalOperations, Slicer};
+
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::cmp::Ordering;
-use std::collections::HashMap;
-use std::slice::Iter;
-
-mod error;
 
 /// Alias for a `Result` with the error type `serde_json::Error`.
 pub type QueryResult<T> = std::result::Result<T, QueryError>;
@@ -105,8 +103,8 @@ pub fn query<S: Serialize, Q: TryInto<LexicalOperations>>(
     let mut lexes = query
         .try_into()
         // TODO: This error handling needs to be fixed!
-        .map_err(|e| QueryError::from(format!("Gulp")))?;
-    let mut data = serde_json::to_value(s).map_err(QueryError::from)?;
+        .map_err(|_e| QueryError::from(format!("Gulp")))?;
+    let data = serde_json::to_value(s).map_err(QueryError::from)?;
     let mut results = Vec::new();
     query_processor(&data, &mut lexes, &mut results, 0)?;
     Ok(results)
@@ -141,7 +139,7 @@ fn query_processor(
                             Err(QueryError::CannotUseIdentifierAsArrayKeyIndex(ident))
                         };
                     }
-                    LexOperator::Pipe(p) => {
+                    LexOperator::Pipe(_p) => {
                         todo!();
                     }
                     LexOperator::Generic(mut g) => {
@@ -172,7 +170,7 @@ fn query_processor(
                             Err(QueryError::CannotUseIdentifierAsArrayKeyIndex(ident))
                         };
                     }
-                    LexOperator::Pipe(p) => {
+                    LexOperator::Pipe(_p) => {
                         todo!();
                     }
                     LexOperator::Generic(mut g) => {
@@ -197,7 +195,7 @@ fn query_slice_w_generic_object_index(
     index_match: &mut GenericObjectIndex,
     query: &mut LexicalOperations,
     results: &mut Vec<Value>,
-    mut depth: usize,
+    depth: usize,
 ) -> QueryResult<()> {
     for (k, v) in data.iter().enumerate() {
         println!("match key: {}; value: {};", k, v);
@@ -216,7 +214,7 @@ fn query_map_w_generic_object_index(
     index_match: &mut GenericObjectIndex,
     query: &mut LexicalOperations,
     results: &mut Vec<Value>,
-    mut depth: usize,
+    depth: usize,
 ) -> QueryResult<()> {
     for (k, v) in data.iter() {
         if match_slice_to_key(&format!("{}", k), index_match) {
@@ -235,7 +233,7 @@ fn key_match_map(key: &String, query: &LexOperator) -> bool {
                 false
             }
         }
-        LexOperator::Pipe(p) => {
+        LexOperator::Pipe(_p) => {
             todo!();
         }
         LexOperator::Generic(g) => {
