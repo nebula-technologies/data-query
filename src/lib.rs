@@ -7,16 +7,14 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
-use crate::error::QueryError;
+mod error;
+
+pub use crate::error::QueryError;
 use data_query_lexical::{GenericObjectIndex, LexOperator, LexicalOperations, Slicer};
 
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::cmp::Ordering;
-
-
-
-mod error;
 
 /// Alias for a `Result` with the error type `serde_json::Error`.
 pub type QueryResult<T> = std::result::Result<T, QueryError>;
