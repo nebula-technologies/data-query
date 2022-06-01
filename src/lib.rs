@@ -1,4 +1,4 @@
-extern crate data_query_lexer;
+extern crate data_query_lexical;
 #[macro_use]
 extern crate data_query_proc;
 extern crate railsgun;
@@ -8,7 +8,8 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use crate::error::QueryError;
-use data_query_lexer::{GenericObjectIndex, LexOperator, LexerError, LexicalOperations, Slicer};
+use data_query_lexical::{GenericObjectIndex, LexOperator, LexerError, LexicalOperations, Slicer};
+use regex::bytes::Regex;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::cmp::Ordering;
@@ -20,7 +21,6 @@ mod error;
 /// Alias for a `Result` with the error type `serde_json::Error`.
 pub type QueryResult<T> = std::result::Result<T, QueryError>;
 
-<<<<<<< HEAD
 struct ComType {
     usize: Option<usize>,
     string: Option<String>,
@@ -104,6 +104,7 @@ pub fn query<S: Serialize, Q: TryInto<LexicalOperations>>(
 ) -> QueryResult<Vec<Value>> {
     let mut lexes = query
         .try_into()
+        // TODO: This error handling needs to be fixed!
         .map_err(|e| QueryError::from(format!("Gulp")))?;
     let mut data = serde_json::to_value(s).map_err(QueryError::from)?;
     let mut results = Vec::new();
@@ -111,24 +112,10 @@ pub fn query<S: Serialize, Q: TryInto<LexicalOperations>>(
     Ok(results)
 }
 
-=======
-pub fn query<S: Serialize, Q: TryInto<LexicalOperations>>(
-    s: S,
-    query: Q,
-) -> QueryResult<Vec<Value>> {
-    let mut lexes = query.try_into().map_err(|e| e.into())?;
-    let mut data = serde_json::to_value(s).map_err(|e| e.into())?;
-    let mut results = Vec::new();
-    query_processor(&data, &mut lexes, &mut results)?;
-    Ok(results)
-}
-
->>>>>>> cd9c681d915169be215feeee8cccedddaa381600
 fn query_processor(
     data: &Value,
     query: &mut LexicalOperations,
     results: &mut Vec<Value>,
-<<<<<<< HEAD
     mut depth: usize,
 ) -> QueryResult<()> {
     depth += 1;
@@ -136,18 +123,11 @@ fn query_processor(
     if query.is_empty() {
         results.push(data.clone());
         return Ok(());
-=======
-) -> QueryResult<()> {
-    if query.is_empty() {
-        results.push(MatchResultExpect::from(data.clone()));
-        Ok(())
->>>>>>> cd9c681d915169be215feeee8cccedddaa381600
     } else {
         let key_query = query
             .pop_front()
             .ok_or(QueryError::UncontrolledError("Empty".to_string()))?;
         match data {
-<<<<<<< HEAD
             Value::Array(v) => {
                 println!("Data Type - Array - {}", line!());
                 match key_query.clone() {
@@ -171,25 +151,10 @@ fn query_processor(
                         return query_slice_w_generic_object_index(
                             &v, &mut g, query, results, depth,
                         );
-=======
-            Value::Array(v) => match key_query {
-                LexOperator::Identifier(ident) => {
-                    if let Ok(i) = ident.parse::<usize>() {
-                        query_processor(&v[i], query, results)
-                    } else {
-                        QueryError::CannotUseIdentifierAsArrayKeyIndex(ident)
->>>>>>> cd9c681d915169be215feeee8cccedddaa381600
                     }
                 }
-                LexOperator::Pipe(p) => {
-                    NotImplemented!();
-                }
-                LexOperator::Generic(mut g) => {
-                    query_generic_object_index(v, &mut g, query, results)
-                }
-            },
+            }
             Value::Object(m) => {
-<<<<<<< HEAD
                 println!("Data Type - Object");
                 println!("{:?}", key_query);
                 match key_query {
@@ -222,32 +187,16 @@ fn query_processor(
                 println!("Unknown");
                 return Ok(());
             }
-=======
-                let mut tmp_value = Vec::new();
-                for (k, v) in m {
-                    if key_match_map(&k, &key_query) {
-                        query_processor(v, query, results)
-                    }
-                }
-                Ok(())
-            }
-            _ => Ok(()),
->>>>>>> cd9c681d915169be215feeee8cccedddaa381600
         }
     }
     Ok(())
 }
 
-<<<<<<< HEAD
-pub fn query_slice_w_generic_object_index(
-=======
-pub fn query_generic_object_index(
->>>>>>> cd9c681d915169be215feeee8cccedddaa381600
+fn query_slice_w_generic_object_index(
     data: &Vec<Value>,
     index_match: &mut GenericObjectIndex,
     query: &mut LexicalOperations,
     results: &mut Vec<Value>,
-<<<<<<< HEAD
     mut depth: usize,
 ) -> QueryResult<()> {
     for (k, v) in data.iter().enumerate() {
@@ -257,20 +206,12 @@ pub fn query_generic_object_index(
             query_processor(v, query, results, depth)?
         } else {
             println!("Slice No match - {} == {:?}", k, index_match);
-=======
-) -> QueryResult<()> {
-    let key_query = index_match.pop().ok_or(QueryError::QueryIsEmpty)?;
-    for (k, v) in data.iter().enumerate() {
-        if match_slice_to_key(k, index_match) {
-            query_processor(value, query, results)?
->>>>>>> cd9c681d915169be215feeee8cccedddaa381600
         }
     }
     Ok(())
 }
 
-<<<<<<< HEAD
-pub fn query_map_w_generic_object_index(
+fn query_map_w_generic_object_index(
     data: &Map<String, Value>,
     index_match: &mut GenericObjectIndex,
     query: &mut LexicalOperations,
@@ -285,7 +226,7 @@ pub fn query_map_w_generic_object_index(
     Ok(())
 }
 
-pub fn key_match_map(key: &String, query: &LexOperator) -> bool {
+fn key_match_map(key: &String, query: &LexOperator) -> bool {
     match query {
         LexOperator::Identifier(ident) => {
             if key == ident {
@@ -299,40 +240,11 @@ pub fn key_match_map(key: &String, query: &LexOperator) -> bool {
         }
         LexOperator::Generic(g) => {
             return match_slice_to_key(key, &mut g.clone());
-=======
-pub fn match_slice_to_key(key: usize, query: &mut GenericObjectIndex) -> bool {
-    match query {
-        GenericObjectIndex::Wildcard => true,
-        GenericObjectIndex::Slice(slice) => {
-            for s in slice {
-                match s {
-                    Slicer::Index(i) => {
-                        if key == i {
-                            true
-                        }
-                    }
-                    Slicer::Slice(f, t) => {
-                        if key >= *f && key <= *t {
-                            true
-                        }
-                    }
-                    Slicer::Ident(ident) => {
-                        if Ok(i) = ident.parse::<usize>() {
-                            if key == i {
-                                true
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
->>>>>>> cd9c681d915169be215feeee8cccedddaa381600
         }
     }
 }
 
-<<<<<<< HEAD
-pub fn match_slice_to_key(key: &str, query: &mut GenericObjectIndex) -> bool {
+fn match_slice_to_key(key: &str, query: &mut GenericObjectIndex) -> bool {
     println!("key: {}; query: {:?};", key, query);
     let key_comp: ComType = key.into();
     match query {
@@ -368,19 +280,6 @@ pub fn match_slice_to_key(key: &str, query: &mut GenericObjectIndex) -> bool {
         }
     }
 }
-=======
-// fn array_items(v: Value, lex: LexicalOperations) -> {
-//
-//     let mut tmp_value = Vec::new();
-//     for (k, v) in v.into_iter().enumerate() {
-//         if key_match_array(&k, &key_query) {
-//             tmp_value =
-//                 vec![tmp_value, query_processor(v, query).unwrap_or_default()].concat();
-//         }
-//     }
-//     Ok(tmp_value)
-// }
->>>>>>> cd9c681d915169be215feeee8cccedddaa381600
 
 // fn array_items(v: Value, lex: LexicalOperations) -> {
 //
@@ -396,12 +295,8 @@ pub fn match_slice_to_key(key: &str, query: &mut GenericObjectIndex) -> bool {
 
 #[cfg(test)]
 pub mod test {
-<<<<<<< HEAD
     use crate::{query, ComType};
-=======
-    use crate::query;
->>>>>>> cd9c681d915169be215feeee8cccedddaa381600
-    use data_query_lexer::LexOperator;
+    use data_query_lexical::LexOperator;
     use serde_derive::Serialize;
     use std::collections::LinkedList;
 
@@ -484,75 +379,6 @@ pub mod test {
         assert!(low < mid);
     }
 
-    #[derive(Serialize)]
-    pub struct User {
-        id: String,
-        is_active: bool,
-        balance: String,
-        age: i32,
-        eye_color: String,
-        name: String,
-        gender: String,
-        company: String,
-        email: String,
-        phone: String,
-        friends: Vec<Friend>,
-        favorite_fruit: String,
-    }
-
-    impl Default for User {
-        fn default() -> Self {
-            Self {
-                id: "5973782bdb9a930533b05cb2".into(),
-                is_active: true,
-                balance: "$1,446.35".into(),
-                age: 32,
-                eye_color: "green".into(),
-                name: "Logan Keller".into(),
-                gender: "male".into(),
-                company: "ARTIQ".into(),
-                email: "logankeller@artiq.com".into(),
-                phone: "+1 (952) 533-2258".into(),
-                friends: Friends::default().into(),
-                favorite_fruit: "banana".into(),
-            }
-        }
-    }
-
-    #[derive(Serialize)]
-    pub struct Friends(Vec<Friend>);
-
-    #[derive(Serialize)]
-    pub struct Friend {
-        id: i32,
-        name: String,
-    }
-
-    impl Default for Friends {
-        fn default() -> Self {
-            Friends(vec![
-                Friend {
-                    id: 0,
-                    name: "Colon Salazar".into(),
-                },
-                Friend {
-                    id: 1,
-                    name: "French Mcneil".into(),
-                },
-                Friend {
-                    id: 2,
-                    name: "Carol Martin".into(),
-                },
-            ])
-        }
-    }
-
-    impl From<Friends> for Vec<Friend> {
-        fn from(f: Friends) -> Self {
-            f.0
-        }
-    }
-
     #[test]
     fn test_proc_macro() {
         let lex: LinkedList<LexOperator> = precompile_lex!(.metadata[1,2,4-6,hello]);
@@ -561,7 +387,6 @@ pub mod test {
 
     #[test]
     fn test_query() {
-<<<<<<< HEAD
         let lex = precompile_lex!(.friends[1].name);
         println!("{:?}", lex);
         let data = User::default();
@@ -573,9 +398,6 @@ pub mod test {
     fn test_query_multiple_results() {
         let lex = precompile_lex!(.friends[1,2].name);
         println!("{:?}", lex);
-=======
-        let lex = precompile_lex!(.metadata[1,2,4-6,hello]);
->>>>>>> cd9c681d915169be215feeee8cccedddaa381600
         let data = User::default();
         let query_res = query(data, lex);
         println!("{:?}", query_res.unwrap());

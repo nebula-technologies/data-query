@@ -3,7 +3,7 @@ name = "data-query"
 version = "0.1.0"
 authors = ["Anders Blenstrup-Pedersen <abp-git@ryuu.technology>"]
 edition = "2021"
-description = "Query library that allows for Querying Serializable data using string queries".
+description = "Query library that allows for Querying Serializable data using string queries"
 readme = "README.md"
 categories = [""]
 keywords = ["serde", "query"]
@@ -18,5 +18,5 @@ regex = "1.5.6"
 serde = "1.0.137"
 serde_json = "1.0.81"
 serde_derive = "1.0.137"
-data-query-proc = {path="./packages/Data Query Proc"}
-data-query-lexer = {path="./packages/Data Query Lexer"}
+data-query-proc = "0.1.0"
+data-query-lexical = "0.1.1"

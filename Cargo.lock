@@ -26,7 +26,7 @@ dependencies = [
 name = "data-query"
 version = "0.1.0"
 dependencies = [
- "data-query-lexer",
+ "data-query-lexical",
  "data-query-proc",
  "railsgun",
  "regex",
@@ -36,17 +36,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "data-query-lexer"
-version = "0.1.0"
-dependencies = [
- "linked-hash-map",
-]
+name = "data-query-lexical"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d60769ef1c5b5e83e8e24b26fd43fbc14265f06cd2767cff6ef817c5dd886173"
 
 [[package]]
 name = "data-query-proc"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "990e09d0291327ba12fa6a4103b7dbff94de915fa09a4ff61d949b71ecf93571"
 dependencies = [
- "data-query-lexer",
+ "data-query-lexical",
  "quote",
 ]
 
@@ -70,12 +71,6 @@ name = "libc"
 version = "0.2.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
-
-[[package]]
-name = "linked-hash-map"
-version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
 
 [[package]]
 name = "memchr"

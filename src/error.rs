@@ -1,4 +1,4 @@
-use crate::data_query_lexer::{LexerError, LexicalOperations};
+use crate::data_query_lexical::{LexerError, LexicalOperations};
 use crate::QueryError::*;
 
 #[derive(Debug)]
