@@ -117,7 +117,6 @@ fn query_processor(
     mut depth: usize,
 ) -> QueryResult<()> {
     depth += 1;
-    println!("current depth: {}", depth);
     if query.is_empty() {
         results.push(data.clone());
         return Ok(());
@@ -126,63 +125,41 @@ fn query_processor(
             .pop_front()
             .ok_or(QueryError::UncontrolledError("Empty".to_string()))?;
         match data {
-            Value::Array(v) => {
-                println!("Data Type - Array - {}", line!());
-                match key_query.clone() {
-                    LexOperator::Identifier(ident) => {
-                        println!("Key Index - Identifier");
-                        println!("data: {:?}", v);
-                        println!("key: {:?}", ident);
-                        return if let Ok(i) = ident.parse::<usize>() {
-                            query_processor(&v[i], query, results, depth)
-                        } else {
-                            Err(QueryError::CannotUseIdentifierAsArrayKeyIndex(ident))
-                        };
-                    }
-                    LexOperator::Pipe(_p) => {
-                        todo!();
-                    }
-                    LexOperator::Generic(mut g) => {
-                        println!("Key Index - Generic");
-                        println!("data: {:?}", v);
-                        println!("key: {:?}", g);
-                        return query_slice_w_generic_object_index(
-                            &v, &mut g, query, results, depth,
-                        );
-                    }
+            Value::Array(v) => match key_query.clone() {
+                LexOperator::Identifier(ident) => {
+                    return if let Ok(i) = ident.parse::<usize>() {
+                        query_processor(&v[i], query, results, depth)
+                    } else {
+                        Err(QueryError::CannotUseIdentifierAsArrayKeyIndex(ident))
+                    };
                 }
-            }
-            Value::Object(m) => {
-                println!("Data Type - Object");
-                println!("{:?}", key_query);
-                match key_query {
-                    LexOperator::Identifier(ident) => {
-                        println!("Key Index - Identifier");
-                        println!("data: {:?}", m);
-                        println!("key: {:?}", ident);
-                        return if m.contains_key(&ident) {
-                            if let Some(value) = m.get(&*ident) {
-                                query_processor(value, query, results, depth)
-                            } else {
-                                Ok(())
-                            }
-                        } else {
-                            Err(QueryError::CannotUseIdentifierAsArrayKeyIndex(ident))
-                        };
-                    }
-                    LexOperator::Pipe(_p) => {
-                        todo!();
-                    }
-                    LexOperator::Generic(mut g) => {
-                        println!("Key Index - Generic");
-                        println!("data: {:?}", m);
-                        println!("key: {:?}", g);
-                        return query_map_w_generic_object_index(m, &mut g, query, results, depth);
-                    }
+                LexOperator::Pipe(_p) => {
+                    todo!();
                 }
-            }
+                LexOperator::Generic(mut g) => {
+                    return query_slice_w_generic_object_index(&v, &mut g, query, results, depth);
+                }
+            },
+            Value::Object(m) => match key_query {
+                LexOperator::Identifier(ident) => {
+                    return if m.contains_key(&ident) {
+                        if let Some(value) = m.get(&*ident) {
+                            query_processor(value, query, results, depth)
+                        } else {
+                            Ok(())
+                        }
+                    } else {
+                        Err(QueryError::CannotUseIdentifierAsArrayKeyIndex(ident))
+                    };
+                }
+                LexOperator::Pipe(_p) => {
+                    todo!();
+                }
+                LexOperator::Generic(mut g) => {
+                    return query_map_w_generic_object_index(m, &mut g, query, results, depth);
+                }
+            },
             _ => {
-                println!("Unknown");
                 return Ok(());
             }
         }
@@ -198,12 +175,8 @@ fn query_slice_w_generic_object_index(
     depth: usize,
 ) -> QueryResult<()> {
     for (k, v) in data.iter().enumerate() {
-        println!("match key: {}; value: {};", k, v);
         if match_slice_to_key(&format!("{}", k), index_match) {
-            println!("Slice match - {} == {:?}", k, index_match);
             query_processor(v, query, results, depth)?
-        } else {
-            println!("Slice No match - {} == {:?}", k, index_match);
         }
     }
     Ok(())
@@ -243,21 +216,15 @@ fn key_match_map(key: &String, query: &LexOperator) -> bool {
 }
 
 fn match_slice_to_key(key: &str, query: &mut GenericObjectIndex) -> bool {
-    println!("key: {}; query: {:?};", key, query);
     let key_comp: ComType = key.into();
     match query {
         GenericObjectIndex::Wildcard => true,
         GenericObjectIndex::Slice(slice) => {
-            println!("Slicer array");
             for s in slice {
                 match s {
                     Slicer::Index(i) => {
-                        println!("here");
                         if key_comp == ComType::from(i) {
-                            println!("success");
                             return true;
-                        } else {
-                            println!("Failed");
                         }
                     }
                     Slicer::Slice(f, t) => {
