@@ -12,5 +12,8 @@ include:
   ref: master
   file: deploy/publish.yml
 
+
+variables:
+  JQ_LIB_DIR: /usr/lib/
 before_script:
   - apt-get update && apt-get install -y libjq-dev
