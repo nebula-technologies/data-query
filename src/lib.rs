@@ -382,6 +382,7 @@ pub mod test {
         println!("{:?}", lex);
     }
 
+    #[cfg(not(feature = "jq"))]
     #[test]
     fn test_query_precompile() {
         let lex = precompile_lex!(.friends[1].name);
@@ -391,6 +392,7 @@ pub mod test {
         println!("{:?}", query_res.unwrap());
     }
 
+    #[cfg(not(feature = "jq"))]
     #[test]
     fn test_query_multiple_results_precompile() {
         let lex = precompile_lex!(.friends[1,2].name);
@@ -401,6 +403,7 @@ pub mod test {
     }
 
     #[test]
+    #[cfg(not(feature = "jq"))]
     fn test_query() {
         let lex = compile(".friends[1].name").unwrap();
         println!("{:?}", lex);
@@ -409,6 +412,7 @@ pub mod test {
         println!("{:?}", query_res.unwrap());
     }
 
+    #[cfg(not(feature = "jq"))]
     #[test]
     fn test_query_multiple_results() {
         let lex = compile(".friends[1,2].name").unwrap();
@@ -417,6 +421,8 @@ pub mod test {
         let query_res = query(data, lex);
         println!("{:?}", query_res.unwrap());
     }
+
+    #[cfg(not(feature = "jq"))]
     #[test]
     fn test_query_results_subident() {
         let lex = compile(".metadata.namespace.").unwrap();
