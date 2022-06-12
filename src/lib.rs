@@ -1,6 +1,7 @@
 extern crate data_query_lexical;
 #[macro_use]
 extern crate data_query_proc;
+extern crate jq_rs;
 extern crate railsgun;
 extern crate regex;
 extern crate serde;
@@ -96,18 +97,29 @@ impl From<&mut usize> for ComType {
     }
 }
 
+#[cfg(not(feature = "jq"))]
 pub fn query<S: Serialize, Q: TryInto<LexicalOperations>>(
     s: S,
     query: Q,
 ) -> QueryResult<Vec<Value>> {
-    let mut lexes = query
-        .try_into()
-        // TODO: This error handling needs to be fixed!
-        .map_err(|_e| QueryError::from(format!("Gulp")))?;
-    let data = serde_json::to_value(s).map_err(QueryError::from)?;
-    let mut results = Vec::new();
-    query_processor(&data, &mut lexes, &mut results, 0)?;
-    Ok(results)
+    {
+        let mut lexes = query
+            .try_into()
+            // TODO: This error handling needs to be fixed!
+            .map_err(|_e| QueryError::from(format!("Gulp")))?;
+        let data = serde_json::to_value(s).map_err(QueryError::from)?;
+        let mut results = Vec::new();
+        query_processor(&data, &mut lexes, &mut results, 0)?;
+        Ok(results)
+    }
+}
+
+#[cfg(feature = "jq")]
+pub fn query<S: Serialize>(s: S, query: &str) -> QueryResult<Vec<Value>> {
+    let mut lexer = jq_rs::compile(query).map_err(QueryError::from)?;
+    let data_string = serde_json::to_string(&s).map_err(QueryError::from)?;
+    let json_value = &lexer.run(&data_string).map_err(QueryError::from)?;
+    serde_json::from_str(&json_value).map_err(QueryError::from)
 }
 
 fn query_processor(
@@ -263,11 +275,13 @@ pub mod test {
     use crate::{query, ComType};
     use data_query_lexical::{compile, LexOperator};
     use serde_derive::Serialize;
-    use std::collections::LinkedList;
+    use std::collections::{HashMap, LinkedList};
+    use std::iter::Map;
 
     #[derive(Serialize)]
     pub struct User {
         id: String,
+        metadata: Metadata,
         is_active: bool,
         balance: String,
         age: i32,
@@ -285,6 +299,7 @@ pub mod test {
         fn default() -> Self {
             Self {
                 id: "5973782bdb9a930533b05cb2".into(),
+                metadata: Metadata::default(),
                 is_active: true,
                 balance: "$1,446.35".into(),
                 age: 32,
@@ -296,6 +311,23 @@ pub mod test {
                 phone: "+1 (952) 533-2258".into(),
                 friends: Friends::default().into(),
                 favorite_fruit: "banana".into(),
+            }
+        }
+    }
+    #[derive(Serialize)]
+    pub struct Metadata {
+        namespace: String,
+        annotations: HashMap<String, String>,
+    }
+
+    impl Default for Metadata {
+        fn default() -> Self {
+            let mut map = HashMap::new();
+            map.insert("mesh.controller.io/group".to_string(), "env-01".to_string());
+
+            Self {
+                namespace: "Randoms".to_string(),
+                annotations: map,
             }
         }
     }
@@ -380,6 +412,14 @@ pub mod test {
     #[test]
     fn test_query_multiple_results() {
         let lex = compile(".friends[1,2].name").unwrap();
+        println!("{:?}", lex);
+        let data = User::default();
+        let query_res = query(data, lex);
+        println!("{:?}", query_res.unwrap());
+    }
+    #[test]
+    fn test_query_results_subident() {
+        let lex = compile(".metadata.namespace.").unwrap();
         println!("{:?}", lex);
         let data = User::default();
         let query_res = query(data, lex);
