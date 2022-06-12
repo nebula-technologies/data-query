@@ -13,4 +13,4 @@ include:
   file: deploy/publish.yml
 
 before_script:
-  - apt-get update && apt-get install -y libjq
+  - apt-get update && apt-get install -y libjq-dev
