@@ -11,3 +11,6 @@ include:
 - project: ci-cd/rust
   ref: master
   file: deploy/publish.yml
+
+before_script:
+  - apt-get update && apt-get install -y libjq
