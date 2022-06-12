@@ -1,6 +1,6 @@
 [package]
 name = "data-query"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Anders Blenstrup-Pedersen <abp-git@ryuu.technology>"]
 edition = "2021"
 description = "Query library that allows for Querying Serializable data using string queries"
