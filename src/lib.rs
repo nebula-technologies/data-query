@@ -107,7 +107,7 @@ pub fn query<S: Serialize, Q: TryInto<LexicalOperations>>(s: S, query: Q) -> Que
         let data = serde_json::to_value(s).map_err(QueryError::from)?;
         let mut results = Vec::new();
         query_processor(&data, &mut lexes, &mut results, 0)?;
-        Ok(results)
+        Ok(Value::Array(results))
     }
 }
 
